@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -103,6 +104,22 @@ class OllamaChatControllerTests {
         Assertions.assertFalse(content.isBlank());
     }
 
+    @Test
+    void chatStreamShouldReturnEventStream() throws Exception {
+        String prompt = "Say 'hello' in English using only one word.";
+
+        MvcResult result = mockMvc.perform(
+                        get("/api/ollama/chat-stream")
+                                .param("prompt", prompt))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        logger.info("GET /api/ollama/chat-stream response: {}", body);
+        Assumptions.assumeTrue(body != null && !body.isBlank(),
+                "Empty stream body, possibly due to Ollama not running.");
+    }
+
     /**
      * 安全读取 JSON 字段的文本值，避免 NPE。
      *
@@ -118,4 +135,3 @@ class OllamaChatControllerTests {
     }
 
 }
-

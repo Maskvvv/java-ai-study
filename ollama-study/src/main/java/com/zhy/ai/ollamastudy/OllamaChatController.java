@@ -1,5 +1,6 @@
 package com.zhy.ai.ollamastudy;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -10,13 +11,16 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.ai.ollama.api.OllamaApi;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * 基于 Ollama 的 REST 控制器，演示：
@@ -141,6 +145,49 @@ public class OllamaChatController {
         result.setModel(modelName);
         result.setContent(response.message().content());
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping(path = "/chat-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter chatStream(@RequestParam("prompt") String prompt) {
+        if (!StringUtils.hasText(prompt)) {
+            throw new IllegalArgumentException("Prompt must not be empty.");
+        }
+        String trimmedPrompt = prompt.trim();
+        logger.info("Handling /chat-stream request, prompt length={}", trimmedPrompt.length());
+
+        String modelName = resolvePreferredModelName();
+        if (!StringUtils.hasText(modelName)) {
+            throw new IllegalStateException("No available Ollama model for streaming.");
+        }
+
+        SseEmitter emitter = new SseEmitter(0L);
+
+        OllamaApi.ChatRequest chatRequest = OllamaApi.ChatRequest.builder(modelName)
+                .stream(true)
+                .messages(List.of(OllamaApi.Message.builder(OllamaApi.Message.Role.USER).content(trimmedPrompt).build()))
+                .build();
+
+        ollamaApi.streamingChat(chatRequest).subscribe(
+                chunk -> {
+                    if (chunk.message() == null || chunk.message().content() == null) {
+                        return;
+                    }
+                    try {
+                        emitter.send(SseEmitter.event().data(chunk.message().content()));
+                    }
+                    catch (IOException e) {
+                        logger.warn("Failed to send SSE chunk.", e);
+                        emitter.completeWithError(e);
+                    }
+                },
+                ex -> {
+                    logger.error("Error during streaming chat.", ex);
+                    emitter.completeWithError(ex);
+                },
+                emitter::complete
+        );
+
+        return emitter;
     }
 
     /**
@@ -298,4 +345,3 @@ public class OllamaChatController {
     }
 
 }
-
