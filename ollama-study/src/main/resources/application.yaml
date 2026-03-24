@@ -1,6 +1,23 @@
-# Using spring-ai-starter-mcp-server-webmvc
 spring:
+  application:
+    name: ollama-study
   ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: qwen2.5-coder:7b
+      init:
+        pull-model-strategy: never
+    openai:
+      api-key: ${SILICONFLOW_API_KEY}
+      base-url: https://api.siliconflow.cn
+      chat:
+        options:
+          model: Qwen/Qwen3.5-4B
+#        api-key:
+#        base-url: https://api.siliconflow.cn
+
     mcp:
       server:
         name: webmvc-mcp-server
