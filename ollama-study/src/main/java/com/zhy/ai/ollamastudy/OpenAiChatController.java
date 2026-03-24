@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.zhy.ai.ollamastudy.mcp.WeatherService;
+
 @RestController
 @RequestMapping("/api/openai")
 public class OpenAiChatController {
@@ -27,9 +29,11 @@ public class OpenAiChatController {
     private final ChatClient chatClient;
     private final OpenAiChatModel openAiChatModel;
 
-    public OpenAiChatController(OpenAiChatModel openAiChatModel) {
+    public OpenAiChatController(OpenAiChatModel openAiChatModel, WeatherService weatherService) {
         this.openAiChatModel = openAiChatModel;
-        this.chatClient = ChatClient.builder(openAiChatModel).build();
+        this.chatClient = ChatClient.builder(openAiChatModel)
+                .defaultTools(weatherService)
+                .build();
     }
 
     @PostMapping("/chat")
