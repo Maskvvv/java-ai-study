@@ -11,10 +11,11 @@ spring:
         pull-model-strategy: never
     openai:
       api-key: ${SILICONFLOW_API_KEY}
-      base-url: https://api.siliconflow.cn
+      base-url: https://api.moonshot.cn
       chat:
         options:
-          model: Qwen/Qwen3.5-4B
+          model: kimi-k2.5
+          temperature: 1.0
 #        api-key:
 #        base-url: https://api.siliconflow.cn
 

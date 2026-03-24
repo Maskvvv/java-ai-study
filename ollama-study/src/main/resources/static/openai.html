@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI AI 助手 (SiliconFlow)</title>
+    <style>
+        :root {
+            --primary-color: #10a37f;
+            --primary-hover: #0d8a6a;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --success-color: #10b981;
+            --code-bg: #1f2937;
+            --code-text: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            overflow-y: auto;
+            gap: 1.5rem;
+        }
+
+        .input-card {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+            margin-bottom: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.1);
+        }
+
+        .action-bar {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-stream {
+            background-color: #7c3aed;
+            color: white;
+        }
+        
+        .btn-stream:hover {
+            background-color: #6d28d9;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status-badge {
+            margin-left: auto;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #d1d5db;
+        }
+
+        .status-dot.active {
+            background-color: var(--success-color);
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .output-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .output-card {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .output-header {
+            padding: 0.75rem 1rem;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .output-content {
+            flex: 1;
+            padding: 1rem;
+            background-color: var(--code-bg);
+            color: var(--code-text);
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.875rem;
+            overflow: auto;
+            white-space: pre-wrap;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .info-card {
+            background: linear-gradient(135deg, #10a37f 0%, #1a7f64 100%);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            color: white;
+            margin-bottom: 0;
+        }
+
+        .info-card h2 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.1rem;
+        }
+
+        .info-card p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.875rem;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        @media (max-width: 768px) {
+            .output-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5c0-5.523 4.477-10 10-10z"></path><path d="M8.5 8.5A2.5 2.5 0 0 0 6 11"></path><path d="M15 15.5A2.5 2.5 0 0 0 17.5 13"></path><path d="M12 2a10 10 0 1 0 0 20"></path></svg>
+            OpenAI Client (SiliconFlow)
+        </h1>
+        <div style="font-size: 0.875rem; color: var(--text-secondary);">
+            <a href="https://siliconflow.cn" target="_blank" style="color: inherit; text-decoration: none;">SiliconFlow 官网 ↗</a>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <main>
+            <div class="info-card">
+                <h2>🚀 SiliconFlow OpenAI 兼容接口</h2>
+                <p>通过 OpenAI 兼容 API 调用 SiliconFlow 的云端大模型，支持同步和流式响应。</p>
+            </div>
+
+            <div class="input-card">
+                <div style="font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem;">输入提示词 (Prompt)</div>
+                <textarea id="prompt" placeholder="在此输入您的问题...">你好，请用一句话介绍你自己。</textarea>
+                
+                <div class="action-bar">
+                    <button id="chatBtn" class="btn btn-primary" onclick="callChat()">
+                        <span>💬 同步对话</span>
+                    </button>
+                    <button id="streamBtn" class="btn btn-stream" onclick="callStream()">
+                        <span>🌊 流式对话</span>
+                    </button>
+                    
+                    <div class="status-badge">
+                        <div id="statusDot" class="status-dot"></div>
+                        <span id="chatStatus">准备就绪</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="output-container">
+                <div class="output-card">
+                    <div class="output-header">
+                        <span>同步响应</span>
+                        <button class="btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 0.375rem; border: 1px solid var(--border-color); background: white; cursor: pointer;" onclick="document.getElementById('normalOutput').textContent = ''">清空</button>
+                    </div>
+                    <pre id="normalOutput" class="output-content"></pre>
+                </div>
+
+                <div class="output-card">
+                    <div class="output-header">
+                        <span>流式响应 (Real-time)</span>
+                        <button class="btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 0.375rem; border: 1px solid var(--border-color); background: white; cursor: pointer;" onclick="clearStreamOutput()">清空</button>
+                    </div>
+                    <pre id="streamOutput" class="output-content"></pre>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const normalOutputEl = document.getElementById('normalOutput');
+        const streamOutputEl = document.getElementById('streamOutput');
+        const chatStatusEl = document.getElementById('chatStatus');
+        const statusDotEl = document.getElementById('statusDot');
+        const chatBtn = document.getElementById('chatBtn');
+        const streamBtn = document.getElementById('streamBtn');
+        let currentEventSource = null;
+
+        function setStatus(text, active = false) {
+            chatStatusEl.textContent = text;
+            if (active) {
+                statusDotEl.classList.add('active');
+            } else {
+                statusDotEl.classList.remove('active');
+            }
+        }
+
+        function setButtonsDisabled(disabled) {
+            chatBtn.disabled = disabled;
+            streamBtn.disabled = disabled;
+        }
+
+        async function callChat() {
+            const prompt = document.getElementById('prompt').value.trim();
+            if (!prompt) {
+                alert('请输入 Prompt');
+                return;
+            }
+            
+            setStatus('调用中...', true);
+            setButtonsDisabled(true);
+            normalOutputEl.textContent = '';
+            
+            try {
+                const resp = await fetch('/api/openai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                if (!resp.ok) {
+                    normalOutputEl.textContent = 'HTTP Error: ' + resp.status;
+                    setStatus('请求失败', false);
+                    return;
+                }
+                
+                const data = await resp.json();
+                normalOutputEl.textContent = data.content || '(空响应)';
+                setStatus('完成', false);
+            } catch (e) {
+                console.error(e);
+                normalOutputEl.textContent = String(e);
+                setStatus('请求异常', false);
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+
+        function callStream() {
+            const prompt = document.getElementById('prompt').value.trim();
+            if (!prompt) {
+                alert('请输入 Prompt');
+                return;
+            }
+            
+            if (currentEventSource) {
+                currentEventSource.close();
+                currentEventSource = null;
+            }
+            
+            clearStreamOutput();
+            setStatus('流式生成中...', true);
+            setButtonsDisabled(true);
+
+            const url = '/api/openai/chat-stream?prompt=' + encodeURIComponent(prompt);
+            const es = new EventSource(url);
+            currentEventSource = es;
+
+            es.onmessage = function (event) {
+                streamOutputEl.textContent += event.data;
+                streamOutputEl.scrollTop = streamOutputEl.scrollHeight;
+            };
+
+            es.onerror = function () {
+                setStatus('流结束', false);
+                setButtonsDisabled(false);
+                es.close();
+                currentEventSource = null;
+            };
+        }
+
+        function clearStreamOutput() {
+            streamOutputEl.textContent = '';
+        }
+    </script>
+</body>
+</html>
