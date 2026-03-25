@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import com.zhy.ai.ollamastudy.mcp.WeatherService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -44,8 +45,8 @@ public class OllamaChatController {
      * @param ollamaChatModel Spring AI 自动配置的 OllamaChatModel
      * @param ollamaApi       Spring AI 提供的底层 Ollama 客户端
      */
-    public OllamaChatController(OllamaChatModel ollamaChatModel, OllamaApi ollamaApi) {
-        this.chatClient = ChatClient.builder(ollamaChatModel).build();
+    public OllamaChatController(OllamaChatModel ollamaChatModel, OllamaApi ollamaApi, WeatherService weatherService) {
+        this.chatClient = ChatClient.builder(ollamaChatModel).defaultTools(weatherService).build();
         this.ollamaApi = ollamaApi;
     }
 
