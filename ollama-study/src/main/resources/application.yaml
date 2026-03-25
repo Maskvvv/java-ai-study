@@ -11,10 +11,14 @@ spring:
         pull-model-strategy: never
     openai:
       api-key: ${SILICONFLOW_API_KEY}
-      base-url: https://api.moonshot.cn
+      base-url: https://api.siliconflow.cn
+#      base-url: https://api.moonshot.cn
+#      base-url: https://vip.xiaweiliang.cn
       chat:
         options:
-          model: moonshot-v1-8k
+          model: Qwen/Qwen3.5-4B
+#          model: moonshot-v1-8k
+#          model: gemini-3-flash-preview-search
 #        api-key:
 #        base-url: https://api.siliconflow.cn
 
