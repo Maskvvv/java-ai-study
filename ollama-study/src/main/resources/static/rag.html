@@ -453,23 +453,32 @@
 
             showStatus('askStatus', 'AI 正在思考...', 'loading');
             document.getElementById('answerSection').style.display = 'block';
-            document.getElementById('answerOutput').textContent = '思考中...';
+            document.getElementById('answerOutput').textContent = '';
 
-            try {
-                const response = await fetch('/api/rag/ask', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question })
-                });
+            const encodedQuestion = encodeURIComponent(question);
+            const eventSource = new EventSource('/api/rag/ask-stream?question=' + encodedQuestion);
 
-                const result = await response.json();
+            let fullAnswer = '';
 
-                document.getElementById('answerOutput').textContent = result.answer;
+            eventSource.onmessage = function(event) {
+                fullAnswer += event.data;
+                document.getElementById('answerOutput').textContent = fullAnswer;
+            };
+
+            eventSource.onerror = function(error) {
+                eventSource.close();
+                if (fullAnswer) {
+                    showStatus('askStatus', '✅ 回答完成', '');
+                } else {
+                    document.getElementById('answerOutput').textContent = '请求失败';
+                    showStatus('askStatus', '❌ 请求失败', 'error');
+                }
+            };
+
+            eventSource.addEventListener('complete', function() {
+                eventSource.close();
                 showStatus('askStatus', '✅ 回答完成', '');
-            } catch (error) {
-                document.getElementById('answerOutput').textContent = '请求失败';
-                showStatus('askStatus', `❌ 请求失败: ${error.message}`, 'error');
-            }
+            });
         }
 
         async function clearAll() {

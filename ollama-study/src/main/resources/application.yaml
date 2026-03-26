@@ -10,7 +10,7 @@ spring:
       init:
         pull-model-strategy: never
     openai:
-      api-key: sk-zalisgcxuxgozjjimnfiwjvrfnvkjqmbgjandqftlajzhsqw
+      api-key: ${SILICONFLOW_API_KEY}
       base-url: https://api.siliconflow.cn
 #      base-url: https://api.moonshot.cn
 #      base-url: https://vip.xiaweiliang.cn
