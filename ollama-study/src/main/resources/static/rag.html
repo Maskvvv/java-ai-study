@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG 知识库问答</title>
+    <style>
+        :root {
+            --primary-color: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --success-color: #10b981;
+            --code-bg: #1f2937;
+            --code-text: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        header p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+            font-size: 0.875rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: #f8fafc;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 1rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px dashed var(--border-color);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        input[type="file"]:hover {
+            border-color: var(--primary-color);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .output-area {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            min-height: 150px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: #f0fdf4;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--success-color);
+        }
+
+        .status-bar.error {
+            background: #fef2f2;
+            color: #ef4444;
+        }
+
+        .status-bar.loading {
+            background: #eff6ff;
+            color: #3b82f6;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .chat-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .chat-message {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .chat-message:last-child {
+            border-bottom: none;
+        }
+
+        .chat-message.user {
+            background: #f0f9ff;
+        }
+
+        .chat-message.assistant {
+            background: #f0fdf4;
+        }
+
+        .chat-role {
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+            color: var(--text-secondary);
+        }
+
+        .chat-content {
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📚 RAG 知识库问答</h1>
+        <p>上传文档构建知识库，基于检索增强生成技术进行智能问答</p>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2>📤 文档导入</h2>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label>方式一：直接输入文本内容</label>
+                    <textarea id="textContent" placeholder="在此粘贴文档内容..."></textarea>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="ingestText()">
+                        <span>📝 导入文本</span>
+                    </button>
+                </div>
+
+                <div style="margin: 1.5rem 0; text-align: center; color: var(--text-secondary);">— 或者 —</div>
+
+                <div class="form-group">
+                    <label>方式二：上传文件</label>
+                    <input type="file" id="fileInput" accept=".txt,.md,.json,.csv">
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="ingestFile()">
+                        <span>📁 上传文件</span>
+                    </button>
+                </div>
+
+                <div id="ingestStatus" class="status-bar" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>❓ 知识问答</h2>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label>输入你的问题</label>
+                    <textarea id="question" placeholder="基于知识库提问..." style="min-height: 100px;"></textarea>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="askQuestion()">
+                        <span>🚀 提问</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearAll()">
+                        <span>🗑️ 清空知识库</span>
+                    </button>
+                </div>
+
+                <div id="answerSection" style="margin-top: 1.5rem; display: none;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem; color: var(--text-secondary);">AI 回答</label>
+                    <div id="answerOutput" class="output-area"></div>
+                </div>
+
+                <div id="askStatus" class="status-bar" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chunkCount = 0;
+
+        function showStatus(elementId, message, type) {
+            const statusEl = document.getElementById(elementId);
+            statusEl.innerHTML = `<div class="status-dot"></div><span>${message}</span>`;
+            statusEl.className = 'status-bar ' + type;
+            statusEl.style.display = 'flex';
+        }
+
+        function hideStatus(elementId) {
+            document.getElementById(elementId).style.display = 'none';
+        }
+
+        async function ingestText() {
+            const content = document.getElementById('textContent').value.trim();
+            if (!content) {
+                alert('请输入文本内容');
+                return;
+            }
+
+            showStatus('ingestStatus', '正在处理文档...', 'loading');
+
+            try {
+                const response = await fetch('/api/rag/ingest/text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    chunkCount += result.chunkCount;
+                    showStatus('ingestStatus', `✅ ${result.message}`, '');
+                    document.getElementById('textContent').value = '';
+                } else {
+                    showStatus('ingestStatus', `❌ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus('ingestStatus', `❌ 请求失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function ingestFile() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                alert('请选择文件');
+                return;
+            }
+
+            showStatus('ingestStatus', '正在上传文件...', 'loading');
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/api/rag/ingest/file', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    chunkCount += result.chunkCount;
+                    showStatus('ingestStatus', `✅ ${result.message}`, '');
+                    fileInput.value = '';
+                } else {
+                    showStatus('ingestStatus', `❌ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus('ingestStatus', `❌ 请求失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function askQuestion() {
+            const question = document.getElementById('question').value.trim();
+            if (!question) {
+                alert('请输入问题');
+                return;
+            }
+
+            showStatus('askStatus', 'AI 正在思考...', 'loading');
+            document.getElementById('answerSection').style.display = 'block';
+            document.getElementById('answerOutput').textContent = '思考中...';
+
+            try {
+                const response = await fetch('/api/rag/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+
+                const result = await response.json();
+
+                document.getElementById('answerOutput').textContent = result.answer;
+                showStatus('askStatus', '✅ 回答完成', '');
+            } catch (error) {
+                document.getElementById('answerOutput').textContent = '请求失败';
+                showStatus('askStatus', `❌ 请求失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearAll() {
+            if (!confirm('确定要清空知识库吗？')) {
+                return;
+            }
+
+            try {
+                await fetch('/api/rag/clear', { method: 'DELETE' });
+                chunkCount = 0;
+                showStatus('askStatus', '✅ 知识库已清空', '');
+                document.getElementById('answerSection').style.display = 'none';
+            } catch (error) {
+                showStatus('askStatus', `❌ 清空失败: ${error.message}`, 'error');
+            }
+        }
+
+        document.getElementById('question').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                askQuestion();
+            }
+        });
+    </script>
+</body>
+</html>
