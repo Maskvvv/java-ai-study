@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -84,6 +85,42 @@ public class RagController {
         result.setAnswer(answer);
 
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping(path = "/ask-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter askStream(@RequestParam("question") String question) {
+        if (question == null || question.isBlank()) {
+            throw new IllegalArgumentException("Question must not be empty.");
+        }
+
+        String trimmedQuestion = question.trim();
+        logger.info("Handling RAG stream request, question length={}", trimmedQuestion.length());
+
+        SseEmitter emitter = new SseEmitter(0L);
+
+        ragService.askStream(trimmedQuestion)
+                .subscribe(
+                        chunk -> {
+                            if (chunk != null && !chunk.isEmpty()) {
+                                try {
+                                    emitter.send(SseEmitter.event().data(chunk));
+                                } catch (IOException e) {
+                                    logger.warn("Failed to send SSE chunk.", e);
+                                    emitter.completeWithError(e);
+                                }
+                            }
+                        },
+                        ex -> {
+                            logger.error("Error during RAG streaming.", ex);
+                            emitter.completeWithError(ex);
+                        },
+                        () -> {
+                            logger.info("RAG stream completed");
+                            emitter.complete();
+                        }
+                );
+
+        return emitter;
     }
 
     @DeleteMapping("/clear")
